@@ -1,42 +1,15 @@
 import java.io.File;
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
+import java.util.Random;
 
 public class NAI_MPP3_s32785
 {
-///////////////////////////////////////////////////LANGUAGE_WRAPPER////////////////////////////////////////////////////////////////////////////////
-    static class LanguageData
-    {
-        public String name;
-        public String Text;
-        public HashMap<Character, Double> characterRates;
-        public ArrayList<Double> rates;
-        public ArrayList<Character> alphabet;
-        public LanguageData(String name) 
-        {
-            this.name = name;
-            this.alphabet = new ArrayList<>();
-            for (char c = 'a'; c <= 'z'; c++) 
-            {
-                alphabet.add(c);
-            }
-        }
-        @Override
-        public String toString()
-        {
-            StringBuilder sb = new StringBuilder();
-            sb.append(name);
-            sb.append("\n");
-            for(int i = 0; i < rates.size(); i++)
-            {
-                sb.append(alphabet.get(i) + ": " + rates.get(i) + "\n");
-            }
-            return sb.toString();
-        }
-    }
 ///////////////////////////////////////////////////DATA_READING////////////////////////////////////////////////////////////////////////////////
     static class DataReader
     {
@@ -50,9 +23,9 @@ public class NAI_MPP3_s32785
             }
         }
 
-        public HashMap<String, String> readDataFromFiles()
+        public LinkedHashMap<String, String> readDataFromFiles()
         {
-            HashMap<String, String> result = new HashMap<>();
+            LinkedHashMap<String, String> result = new LinkedHashMap<>();
             for(String path : filePaths)
             {
                 try
@@ -84,7 +57,7 @@ public class NAI_MPP3_s32785
         private ArrayList<String> trainingStrings = new ArrayList<>();
         private ArrayList<String> testingStrings = new ArrayList<>();
         private ArrayList<Character> alphabet;
-        public ArrayList<LanguageData> languagesWithRates = new ArrayList<>();
+        public ArrayList<LanguageVector> languagesWithRates = new ArrayList<>();
 
         public DataDivider(HashMap<String, String> initialStrings) 
         {
@@ -101,7 +74,7 @@ public class NAI_MPP3_s32785
             ArrayList<String> initialStrings = new ArrayList<>(initialData.values());
             for(String key : initialData.keySet())
             {
-                languagesWithRates.add(new LanguageData(key));
+                languagesWithRates.add(new LanguageVector(key));
             }
             for(int i = 0; i < initialStrings.size(); i++)
             {
@@ -132,18 +105,18 @@ public class NAI_MPP3_s32785
         public ArrayList<Double> produceCharacterOccurancesList(HashMap<Character, Double> toOrganize, Integer textSize)
         {
             ArrayList<Double> result = new ArrayList<>();
-            for(Character key : toOrganize.keySet())
+            for(Character key : alphabet)
             {
                 result.add(toOrganize.get(key)/textSize);
             }
             return result;
         }
 
-        public ArrayList<LanguageData> fillOutLanguages()
+        public ArrayList<LanguageVector> fillOutLanguages()
         {
             for(int i = 0; i < languagesWithRates.size(); i++)
             {
-                languagesWithRates.get(i).rates = produceCharacterOccurancesList(produceCharacterNumberMap(languagesWithRates.get(i).Text), languagesWithRates.get(i).Text.length()); 
+                languagesWithRates.get(i).cords = produceCharacterOccurancesList(produceCharacterNumberMap(languagesWithRates.get(i).Text), languagesWithRates.get(i).Text.length()); 
             }
             return this.languagesWithRates;
         }
@@ -171,17 +144,33 @@ public class NAI_MPP3_s32785
         }
     }
 ///////////////////////////////////////////////////MY_VECTOR////////////////////////////////////////////////////////////////////////////////
-    static class MyVector
+    static class LanguageVector
     {
-        private ArrayList<Double> cords = new ArrayList<>();
-        private int label;
-        public MyVector(){}
-        public MyVector(ArrayList<Double> cords, int label)
+        public ArrayList<Double> cords = new ArrayList<>();
+        public int label;
+        //language part
+        public String name;
+        private String Text;
+        private HashMap<Character, Double> characterRates;
+        private ArrayList<Character> alphabet;
+        //language part
+        
+        public LanguageVector(){}
+        public LanguageVector(String name) 
+        {
+            this.name = name;
+            this.alphabet = new ArrayList<>();
+            for (char c = 'a'; c <= 'z'; c++) 
+            {
+                alphabet.add(c);
+            }
+        }
+        public LanguageVector(ArrayList<Double> cords, int label)
         {
             this.cords = cords;
             this.label = label;
         }
-        public MyVector(MyVector other)
+        public LanguageVector(LanguageVector other)
         {
             this.label= other.label;
             this.cords = other.cords;
@@ -203,7 +192,7 @@ public class NAI_MPP3_s32785
             //System.out.println(result);
             return result;
         }
-        public double distance(MyVector vec2)
+        public double distance(LanguageVector vec2)
         {
             double result = 0;
             if(this.cords.size() != vec2.cords.size())
@@ -218,9 +207,9 @@ public class NAI_MPP3_s32785
             result = Math.sqrt(result); 
             return result;
         }
-        public MyVector sum(MyVector vec2)
+        public LanguageVector sum(LanguageVector vec2)
         {
-            MyVector result = new MyVector();
+            LanguageVector result = new LanguageVector();
             if(this.cords.size() != vec2.cords.size())
             {
                 System.out.println("Can't add vectors of different sizes");
@@ -238,7 +227,7 @@ public class NAI_MPP3_s32785
             return result;  
         }
 
-        public MyVector scalar(double factor)
+        public LanguageVector scalar(double factor)
         {
             ArrayList<Double> result = new ArrayList<>();
             for(int i = 0; i < this.cords.size(); i++)
@@ -250,17 +239,18 @@ public class NAI_MPP3_s32785
             //     System.out.print(i + " ");
             // }
             // System.out.println();
-            return new MyVector(result, this.label);
+            return new LanguageVector(result, this.label);
         }
 
         @Override
         public String toString()
         {
             StringBuilder sb = new StringBuilder();
-            sb.append("Vector type: " + this.label + " | Coordinates: ");
-            for(Double cord : cords)
+            sb.append(name);
+            sb.append("\n");
+            for(int i = 0; i < cords.size(); i++)
             {
-                sb.append(" " + cord + " ");
+                sb.append(alphabet.get(i) + ": " + cords.get(i) + "\n");
             }
             return sb.toString();
         }
@@ -269,14 +259,14 @@ public class NAI_MPP3_s32785
     static class Perceptron
     {
         int dimension = 0;
-        private ArrayList<MyVector> inputs;
+        //private ArrayList<LanguageVector> inputs;
         private ArrayList<Double> weights;
         private double treshold;
         private double alpha;
         private double beta;
-        public Perceptron(ArrayList<MyVector> inputs, ArrayList<Double> weights, double treshold, double alpha, double beta)
+        public Perceptron(/*ArrayList<LanguageVector> inputs, */ArrayList<Double> weights, double treshold, double alpha, double beta)
         {
-            this.inputs = inputs;
+            //this.inputs = inputs;
             this.weights = weights;
             this.treshold = treshold;
             this.alpha = alpha;
@@ -285,33 +275,33 @@ public class NAI_MPP3_s32785
         }
         public Perceptron(Perceptron other)
         {
-            this.inputs = other.inputs;
+            //this.inputs = other.inputs;
             this.weights = other.weights;
             this.treshold = other.treshold;
             this.alpha = other.alpha;
             this.beta = other.beta;
         }
-        public HashMap<Integer, ArrayList<MyVector>> train(ArrayList<MyVector> inputs, ArrayList<MyVector> correctAnswers)
+        public HashMap<Integer, ArrayList<LanguageVector>> train(ArrayList<LanguageVector> inputs, ArrayList<LanguageVector> correctAnswers)
         {
             int maxNunberOfEpochs = 10000;
             boolean trainingCompleted = false;
-            HashMap<Integer, ArrayList<MyVector>> results= new HashMap<>();
+            HashMap<Integer, ArrayList<LanguageVector>> results= new HashMap<>();
             int numberOfEpochs = 0;
             while(!trainingCompleted && maxNunberOfEpochs-- > 0)
             {
                 numberOfEpochs++;
-                results.put(numberOfEpochs, new ArrayList<MyVector>());
+                results.put(numberOfEpochs, new ArrayList<LanguageVector>());
                 trainingCompleted = true;
                 for(int i = 0; i < inputs.size(); i++)
                 {
-                    results.get(numberOfEpochs).add(new MyVector(inputs.get(i).cords, predict(inputs.get(i))));
+                    results.get(numberOfEpochs).add(new LanguageVector(inputs.get(i).cords, predict(inputs.get(i))));
                     if(correctAnswers.get(i).getType() != predict(inputs.get(i)))
                     {
                         trainingCompleted = false;
                         // w = w + (d - y)*x*alpha
                         double sign = (correctAnswers.get(i).getType() - predict(inputs.get(i)));
-                        MyVector weightsVector = new MyVector(this.weights, 0);
-                        MyVector toAdd = inputs.get(i).scalar(sign*this.alpha);
+                        LanguageVector weightsVector = new LanguageVector(this.weights, 0);
+                        LanguageVector toAdd = inputs.get(i).scalar(sign*this.alpha);
                         weightsVector = weightsVector.sum(toAdd);
                         this.weights = weightsVector.cords;
                         //treshold = treshold - (d - y)*beta
@@ -322,40 +312,116 @@ public class NAI_MPP3_s32785
             return results;
         }
  
-        public int predict(MyVector input)
+        public int predict(LanguageVector input)
         {
             return (input.dot_product(this.weights) - this.treshold > 0) ? 1 : 0;
         }
-        public ArrayList<MyVector> predictOnDataset(ArrayList<MyVector> inputs)
+
+        public double predictDouble(LanguageVector input)
         {
-            ArrayList<MyVector> predictions = new ArrayList<>();
+            return input.dot_product(this.weights) - this.treshold; 
+        }
+        public ArrayList<LanguageVector> predictOnDataset(ArrayList<LanguageVector> inputs)
+        {
+            ArrayList<LanguageVector> predictions = new ArrayList<>();
             for(int i = 0; i < inputs.size(); i++)
             {
-                predictions.add(new MyVector(inputs.get(i).getCords(), predict(inputs.get(i))));
+                predictions.add(new LanguageVector(inputs.get(i).getCords(), predict(inputs.get(i))));
             }
             return predictions;
+        }
+    }
+    static class SingleLayerNeuralNetwork
+    {
+        Double alpha;
+        Double beta;
+        Double threshold;
+        ArrayList<Double> weights = new ArrayList<>();
+        ArrayList<Perceptron> neurons = new ArrayList<>();
+        ArrayList<LanguageVector> languages = new ArrayList<>();
+        public SingleLayerNeuralNetwork(Double alpha, Double beta, ArrayList<LanguageVector> languages)
+        {
+            Random rand = new Random();
+            this.threshold = rand.nextDouble();
+            this.alpha = alpha;
+            this.beta = beta;
+            for(int i = 0; i < 26; i++) weights.add(rand.nextDouble());
+            this.languages = languages;
+            for(int i = 0; i < languages.size(); i++) {languages.get(i).label = 0;}
+            neurons.add(new Perceptron(new ArrayList<>(this.weights), this.threshold, this.alpha, this.beta));
+            neurons.add(new Perceptron(new ArrayList<>(this.weights), this.threshold, this.alpha, this.beta));
+            neurons.add(new Perceptron(new ArrayList<>(this.weights), this.threshold, this.alpha, this.beta));
+        }
+        public void trainLayer()
+        {
+            for(int i = 0; i < neurons.size(); i++)
+            {
+                ArrayList<LanguageVector> specificLanguage = new ArrayList<>(languages);
+                specificLanguage.get(i).label = 1;
+                this.neurons.get(i).train(languages, specificLanguage);
+                specificLanguage.get(i).label = 0;
+            }
+        }
+        public int predict(LanguageVector toPredict)
+        {
+            int predictedLanguageIndex = -1;
+            Double prediction0 = Double.NEGATIVE_INFINITY;
+            for(int i = 0; i < neurons.size(); i++) 
+            {
+                Double prediction = this.neurons.get(i).predictDouble(toPredict);
+                if(prediction > prediction0) 
+                {
+                    prediction0 = prediction;
+                    predictedLanguageIndex = i;
+                }
+            }
+            return predictedLanguageIndex;
         }
     }
     public static void main(String[] args) 
     {
         System.out.println("Hi");
-        ArrayList<String> fileParths = new ArrayList<>();
-        fileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextEnglish.txt");
-        fileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextEnglish.txt");
-        fileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextGerman.txt");
-        fileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextGerman.txt");
-        fileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextFrench.txt");
-        fileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextFrench.txt");
+        ArrayList<String> trainingFileParths = new ArrayList<>();
+        trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextEnglish.txt");
+        trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextFrench.txt");
+        trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextGerman.txt");
+        
 
-        DataReader reader = new DataReader(fileParths);
+        DataReader reader = new DataReader(trainingFileParths);
         HashMap<String, String> readingResult = reader.readDataFromFiles();
         
         DataDivider divider = new DataDivider(readingResult);
         divider.divideData();
-        ArrayList<LanguageData> resultingLanguageDatas = divider.fillOutLanguages();
+        ArrayList<LanguageVector> resultingLanguageDatas = divider.fillOutLanguages();
         for(int i = 0; i < resultingLanguageDatas.size(); i++)
         {
             System.out.println(resultingLanguageDatas.get(i));
         }
+        
+        // for(int i = 0; i < resultingLanguageDatas.size(); i++)
+        // {
+        //     resultingLanguageDatas.get(i).label = 0;
+        // }
+
+        SingleLayerNeuralNetwork test = new SingleLayerNeuralNetwork(0.1, 0.1, resultingLanguageDatas);
+        test.trainLayer();
+        
+        System.out.println("Testing");
+        ArrayList<String> testingFileParths = new ArrayList<>();
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextEnglish.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextFrench.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextGerman.txt");
+
+        DataReader readerTest = new DataReader(testingFileParths);
+        HashMap<String, String> readingResultTest = readerTest.readDataFromFiles();
+        
+        DataDivider dividerTest = new DataDivider(readingResultTest);
+        dividerTest.divideData();
+        ArrayList<LanguageVector> resultingLanguageDatasTest = dividerTest.fillOutLanguages();
+
+        int toPredict = (int)(Math.random()*3);
+        int predictedIndexTest = test.predict(resultingLanguageDatasTest.get(toPredict));
+
+        System.out.println("Real language " + resultingLanguageDatasTest.get(toPredict).name + " | Predicted language: " + resultingLanguageDatasTest.get(predictedIndexTest).name);
     }
 }
