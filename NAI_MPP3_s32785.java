@@ -6,6 +6,7 @@ import java.nio.file.Paths;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.Map;
 import java.util.Random;
 
 public class NAI_MPP3_s32785
@@ -69,12 +70,21 @@ public class NAI_MPP3_s32785
             }
         }
 
+        public String extractName(String s)
+        {
+            if(s.contains("German")) return "German";
+            if(s.contains("English")) return "English";
+            if(s.contains("French")) return "French";
+            else return null;
+        }
+
         public void divideData()
         {
             ArrayList<String> initialStrings = new ArrayList<>(initialData.values());
             for(String key : initialData.keySet())
             {
-                languagesWithRates.add(new LanguageVector(key));
+                String languageName = extractName(key);
+                languagesWithRates.add(new LanguageVector(languageName));
             }
             for(int i = 0; i < initialStrings.size(); i++)
             {
@@ -339,6 +349,7 @@ public class NAI_MPP3_s32785
         ArrayList<Double> weights = new ArrayList<>();
         ArrayList<Perceptron> neurons = new ArrayList<>();
         ArrayList<LanguageVector> languages = new ArrayList<>();
+        ArrayList<String> languageNames = new ArrayList<>();
         public SingleLayerNeuralNetwork(Double alpha, Double beta, ArrayList<LanguageVector> languages)
         {
             Random rand = new Random();
@@ -347,7 +358,11 @@ public class NAI_MPP3_s32785
             this.beta = beta;
             for(int i = 0; i < 26; i++) weights.add(rand.nextDouble());
             this.languages = languages;
-            for(int i = 0; i < languages.size(); i++) {languages.get(i).label = 0;}
+            for(int i = 0; i < languages.size(); i++) 
+            {
+                languages.get(i).label = 0;
+                if(!languageNames.contains(languages.get(i).name)) languageNames.add(languages.get(i).name);
+            }
             neurons.add(new Perceptron(new ArrayList<>(this.weights), this.threshold, this.alpha, this.beta));
             neurons.add(new Perceptron(new ArrayList<>(this.weights), this.threshold, this.alpha, this.beta));
             neurons.add(new Perceptron(new ArrayList<>(this.weights), this.threshold, this.alpha, this.beta));
@@ -356,10 +371,20 @@ public class NAI_MPP3_s32785
         {
             for(int i = 0; i < neurons.size(); i++)
             {
+                String workingWith = languageNames.get(i);
                 ArrayList<LanguageVector> specificLanguage = new ArrayList<>(languages);
-                specificLanguage.get(i).label = 1;
+                for(int j = 0; j < specificLanguage.size(); j++) 
+                {
+                    if(specificLanguage.get(j).name.equals(workingWith))
+                    {
+                        specificLanguage.get(j).label = 1;
+                    }
+                }
                 this.neurons.get(i).train(languages, specificLanguage);
-                specificLanguage.get(i).label = 0;
+                for(int j = 0; j < specificLanguage.size(); j++) 
+                {
+                    specificLanguage.get(j).label = 0;
+                }
             }
         }
         public int predict(LanguageVector toPredict)
@@ -378,10 +403,54 @@ public class NAI_MPP3_s32785
             return predictedLanguageIndex;
         }
     }
+    static class EvaluationMetrics
+    {
+        public double measureAccuracy(ArrayList<LanguageVector> correctAnswers, ArrayList<LanguageVector> predictions)
+        {
+            double correctAnswersNumber = 0;
+            for(int i = 0; i < predictions.size(); i++)
+            {
+                if(correctAnswers.get(i).label == predictions.get(i).label)
+                {
+                    correctAnswersNumber++;
+                }
+            }
+            return correctAnswersNumber/correctAnswers.size();
+        }
+        
+        public double showcaseAccuracyThroughEpochs(HashMap<Integer, ArrayList<LanguageVector>> predictionsByEpochs, ArrayList<LanguageVector> correctAnswers)
+        {
+            ArrayList<Double> accuracyAcrossEpochs = new ArrayList<>();
+            for(Map.Entry<Integer, ArrayList<LanguageVector>> epochPrediction : predictionsByEpochs.entrySet())
+            {
+                double correctAnswersNumber = 0;
+                ArrayList<LanguageVector> predictedVectors = epochPrediction.getValue();
+                for(int i = 0; i < predictedVectors.size(); i++)
+                {
+                    if(predictedVectors.get(i).getType() == correctAnswers.get(i).getType())
+                    {
+                        correctAnswersNumber++;
+                    }
+                }
+                System.out.println("Accuracy during epoch" + epochPrediction.getKey() + " is: " + correctAnswersNumber/correctAnswers.size());
+                accuracyAcrossEpochs.add(correctAnswersNumber/correctAnswers.size());
+            }
+            Double averageAccuracy = 0.0;
+            for(Double accuracy : accuracyAcrossEpochs)
+            {
+                averageAccuracy += accuracy;
+            }
+            averageAccuracy /= predictionsByEpochs.size();
+            return averageAccuracy;
+        }
+    }
     public static void main(String[] args) 
     {
         System.out.println("Hi");
         ArrayList<String> trainingFileParths = new ArrayList<>();
+        trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextEnglishBig.txt");
+        trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextFrenchBig.txt");
+        trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextGermanBig.txt");
         trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextEnglish.txt");
         trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextFrench.txt");
         trainingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextGerman.txt");
