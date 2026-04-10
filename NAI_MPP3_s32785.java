@@ -341,6 +341,7 @@ public class NAI_MPP3_s32785
             return predictions;
         }
     }
+///////////////////////////////////////////////////SIGNLE_LAYER_NN////////////////////////////////////////////////////////////////////////////////
     static class SingleLayerNeuralNetwork
     {
         Double alpha;
@@ -387,6 +388,30 @@ public class NAI_MPP3_s32785
                 }
             }
         }
+        // public ArrayList<Integer> testLayer(ArrayList<LanguageVector> toTestOn)
+        // {
+        //     ArrayList<Integer> result = new ArrayList<>();
+        //     for(int i = 0; i < neurons.size(); i++)
+        //     {
+        //         String workingWith = languageNames.get(i);
+        //         ArrayList<LanguageVector> specificLanguage = new ArrayList<>(toTestOn);
+        //         for(int j = 0; j < specificLanguage.size(); j++) 
+        //         {
+        //             if(specificLanguage.get(j).name.equals(workingWith))
+        //             {
+        //                 specificLanguage.get(j).label = 1;
+        //             }
+        //         }
+        //         result.add(specificLanguage.get(i).label);
+        //         result.add(predict(specificLanguage.get(i)));
+        //         for(int j = 0; j < specificLanguage.size(); j++) 
+        //         {
+        //             specificLanguage.get(j).label = 0;
+        //         }
+        //     }
+        //     return result;
+        // }
+        
         public int predict(LanguageVector toPredict)
         {
             int predictedLanguageIndex = -1;
@@ -403,8 +428,93 @@ public class NAI_MPP3_s32785
             return predictedLanguageIndex;
         }
     }
+///////////////////////////////////////////////////EVALUATION_METRICS////////////////////////////////////////////////////////////////////////////////
     static class EvaluationMetrics
     {
+        // public LinkedHashMap<String, ArrayList<Double>> evaluateNN(SingleLayerNeuralNetwork network, ArrayList<LanguageVector> toTestOn)
+        // {
+        //     LinkedHashMap<String, ArrayList<Integer>> predictions = new LinkedHashMap<>();
+        //     LinkedHashMap<String, ArrayList<Double>> evaluation = new LinkedHashMap<>();
+        //     for(int i = 0; i < network.languageNames.size(); i++)
+        //     {
+        //         //setting correct language labels for iteration
+        //         for(int j = 0; j < toTestOn.size(); j++) if(toTestOn.get(j).name.equals(network.languageNames.get(i))) toTestOn.get(j).label = 1;
+        //         for(int j = 0; j < toTestOn.size(); j++)
+        //         {
+        //             if(!predictions.containsKey(toTestOn.get(i).name))
+        //             {
+        //                 predictions.put(toTestOn.get(i).name, new ArrayList<>());
+        //             }
+        //             ArrayList<Integer> previousPredictions = predictions.get(toTestOn.get(i).name);
+        //             previousPredictions.add(toTestOn.get(j).label);
+        //             previousPredictions.add((Integer.valueOf(network.predict(toTestOn.get(j)))));
+        //         }
+        //         ArrayList<Integer> real = new ArrayList<>();
+        //         ArrayList<Integer> predicted = new ArrayList<>();
+        //         ArrayList<Integer> mixed = predictions.get(network.languageNames.get(i));  
+        //         for(int j = 0; j < mixed.size(); j += 2)
+        //         {
+        //             real.add(mixed.get(j));
+        //         }
+        //         for(int j = 1; j < mixed.size(); j += 2)
+        //         {
+        //             predicted.add(mixed.get(j));
+        //         }
+        //         ArrayList<Double> toPut = calculateMetrics(predicted, real, i); 
+        //         evaluation.put(network.languageNames.get(i), toPut);
+        //         //setting language labels back
+        //         for(int j = 0; j < toTestOn.size(); j++) toTestOn.get(j).label = 0;
+        //     }
+        //     return evaluation;
+        // }
+
+        public LinkedHashMap<String, ArrayList<Double>> evaluateNN(SingleLayerNeuralNetwork network, ArrayList<LanguageVector> toTestOn) 
+        {
+            LinkedHashMap<String, ArrayList<Double>> evaluationPerLanguage = new LinkedHashMap<>();
+
+            ArrayList<Integer> realLabels = new ArrayList<>();
+            ArrayList<Integer> predictedLabels = new ArrayList<>();
+
+            for (LanguageVector languageVector : toTestOn) 
+            {
+                realLabels.add(network.languageNames.indexOf(languageVector.name));
+                predictedLabels.add(network.predict(languageVector));
+            }
+        
+            EvaluationMetrics metricsTool = new EvaluationMetrics();
+            for (int i = 0; i < network.languageNames.size(); i++) 
+            {
+                ArrayList<Double> evaluation = metricsTool.calculateMetrics(predictedLabels, realLabels, i);
+                evaluationPerLanguage.put(network.languageNames.get(i), evaluation);
+            }
+            return evaluationPerLanguage;
+        }
+
+        public ArrayList<Double> calculateMetrics(ArrayList<Integer> predicted, ArrayList<Integer> real, int target)
+        {
+            double tp = 0;
+            double fp = 0;
+            double fn = 0;
+
+            for(int i = 0; i < predicted.size(); i++)
+            {
+                if(real.get(i) == target && predicted.get(i) == target) tp++;
+                if(real.get(i) != target && predicted.get(i) == target) fp++;
+                if(real.get(i) == target && predicted.get(i) != target) fn++;
+            }
+
+            double precision = (tp + fp == 0) ? 0 : tp / (tp+fp);
+            double recall = (tp + fn == 0) ? 0 : tp / (tp + fn);
+            double fmeasure = 0;
+            if(precision + recall > 0) fmeasure = 2*(precision*recall)/(precision + recall);
+            
+            ArrayList<Double> result = new ArrayList<>();
+            result.add(precision);
+            result.add(recall);
+            result.add(fmeasure);
+            return result;
+        }
+
         public double measureAccuracy(ArrayList<LanguageVector> correctAnswers, ArrayList<LanguageVector> predictions)
         {
             double correctAnswersNumber = 0;
@@ -466,11 +576,6 @@ public class NAI_MPP3_s32785
         {
             System.out.println(resultingLanguageDatas.get(i));
         }
-        
-        // for(int i = 0; i < resultingLanguageDatas.size(); i++)
-        // {
-        //     resultingLanguageDatas.get(i).label = 0;
-        // }
 
         SingleLayerNeuralNetwork test = new SingleLayerNeuralNetwork(0.1, 0.1, resultingLanguageDatas);
         test.trainLayer();
@@ -480,6 +585,12 @@ public class NAI_MPP3_s32785
         testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextEnglish.txt");
         testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextFrench.txt");
         testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TestTextGerman.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextEnglishBig.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextFrenchBig.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextGermanBig.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextEnglish.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextFrench.txt");
+        testingFileParths.add("E:\\!Programs\\NAI_Solutions\\MPP3\\TrainTextGerman.txt");
 
         DataReader readerTest = new DataReader(testingFileParths);
         HashMap<String, String> readingResultTest = readerTest.readDataFromFiles();
@@ -487,10 +598,20 @@ public class NAI_MPP3_s32785
         DataDivider dividerTest = new DataDivider(readingResultTest);
         dividerTest.divideData();
         ArrayList<LanguageVector> resultingLanguageDatasTest = dividerTest.fillOutLanguages();
+        EvaluationMetrics measurements = new EvaluationMetrics();
+        LinkedHashMap<String, ArrayList<Double>> finalResults = measurements.evaluateNN(test, resultingLanguageDatasTest);
 
-        int toPredict = (int)(Math.random()*3);
-        int predictedIndexTest = test.predict(resultingLanguageDatasTest.get(toPredict));
-
-        System.out.println("Real language " + resultingLanguageDatasTest.get(toPredict).name + " | Predicted language: " + resultingLanguageDatasTest.get(predictedIndexTest).name);
+        System.out.println("\n---EVALUATION---");
+        for (Map.Entry<String, ArrayList<Double>> entry : finalResults.entrySet()) 
+        {
+            String language = entry.getKey();
+            ArrayList<Double> metrics = entry.getValue();
+        
+            System.out.println("Language: " + language);
+            System.out.printf("  Precision: %.4f\n", metrics.get(0));
+            System.out.printf("  Recall:    %.4f\n", metrics.get(1));
+            System.out.printf("  F-Measure: %.4f\n", metrics.get(2));
+            System.out.println("-------------------------------");
+        }
     }
 }
