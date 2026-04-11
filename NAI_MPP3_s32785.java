@@ -8,6 +8,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.Map;
 import java.util.Random;
+import java.util.Scanner;
 
 public class NAI_MPP3_s32785
 {
@@ -46,6 +47,14 @@ public class NAI_MPP3_s32785
             return result;
         }
 
+        public LinkedHashMap<String, String> readDataFromString(String str)
+        {
+            LinkedHashMap<String, String> result = new LinkedHashMap<>();
+            String cleanedFileContent = str.toLowerCase().replaceAll("[^a-z]", "");
+            result.put("test", cleanedFileContent);
+            return result;
+        }
+
         public static String readFileContent(String filePath) throws IOException 
         {
             return Files.readString(Paths.get(filePath));
@@ -54,15 +63,13 @@ public class NAI_MPP3_s32785
 ///////////////////////////////////////////////////DATA_PROCESSING////////////////////////////////////////////////////////////////////////////////
     static class DataDivider
     {
-        private HashMap<String, String> initialData;
         private ArrayList<String> trainingStrings = new ArrayList<>();
         private ArrayList<String> testingStrings = new ArrayList<>();
         private ArrayList<Character> alphabet;
         public ArrayList<LanguageVector> languagesWithRates = new ArrayList<>();
 
-        public DataDivider(HashMap<String, String> initialStrings) 
+        public DataDivider() 
         {
-            this.initialData = initialStrings;
             this.alphabet = new ArrayList<>();
             for (char c = 'a'; c <= 'z'; c++) 
             {
@@ -78,8 +85,9 @@ public class NAI_MPP3_s32785
             else return null;
         }
 
-        public void divideData()
+        public void divideData(HashMap<String, String> initialData)
         {
+            this.languagesWithRates.clear();
             ArrayList<String> initialStrings = new ArrayList<>(initialData.values());
             for(String key : initialData.keySet())
             {
@@ -90,10 +98,6 @@ public class NAI_MPP3_s32785
             {
                 languagesWithRates.get(i).Text = initialStrings.get(i);
             }
-            
-            // int languagesNumber = (initialStrings.size()/2);
-            // for(int i = 0; i < languagesNumber; i++) { trainingStrings.add(initialStrings.get(i)); }
-            // for(int i = languagesNumber; i < initialStrings.size(); i++) { testingStrings.add(initialStrings.get(i)); }
         }
 
         public HashMap<Character, Double> produceCharacterNumberMap(String input)
@@ -269,14 +273,12 @@ public class NAI_MPP3_s32785
     static class Perceptron
     {
         int dimension = 0;
-        //private ArrayList<LanguageVector> inputs;
         private ArrayList<Double> weights;
         private double treshold;
         private double alpha;
         private double beta;
-        public Perceptron(/*ArrayList<LanguageVector> inputs, */ArrayList<Double> weights, double treshold, double alpha, double beta)
+        public Perceptron(ArrayList<Double> weights, double treshold, double alpha, double beta)
         {
-            //this.inputs = inputs;
             this.weights = weights;
             this.treshold = treshold;
             this.alpha = alpha;
@@ -285,7 +287,6 @@ public class NAI_MPP3_s32785
         }
         public Perceptron(Perceptron other)
         {
-            //this.inputs = other.inputs;
             this.weights = other.weights;
             this.treshold = other.treshold;
             this.alpha = other.alpha;
@@ -388,30 +389,6 @@ public class NAI_MPP3_s32785
                 }
             }
         }
-        // public ArrayList<Integer> testLayer(ArrayList<LanguageVector> toTestOn)
-        // {
-        //     ArrayList<Integer> result = new ArrayList<>();
-        //     for(int i = 0; i < neurons.size(); i++)
-        //     {
-        //         String workingWith = languageNames.get(i);
-        //         ArrayList<LanguageVector> specificLanguage = new ArrayList<>(toTestOn);
-        //         for(int j = 0; j < specificLanguage.size(); j++) 
-        //         {
-        //             if(specificLanguage.get(j).name.equals(workingWith))
-        //             {
-        //                 specificLanguage.get(j).label = 1;
-        //             }
-        //         }
-        //         result.add(specificLanguage.get(i).label);
-        //         result.add(predict(specificLanguage.get(i)));
-        //         for(int j = 0; j < specificLanguage.size(); j++) 
-        //         {
-        //             specificLanguage.get(j).label = 0;
-        //         }
-        //     }
-        //     return result;
-        // }
-        
         public int predict(LanguageVector toPredict)
         {
             int predictedLanguageIndex = -1;
@@ -431,43 +408,6 @@ public class NAI_MPP3_s32785
 ///////////////////////////////////////////////////EVALUATION_METRICS////////////////////////////////////////////////////////////////////////////////
     static class EvaluationMetrics
     {
-        // public LinkedHashMap<String, ArrayList<Double>> evaluateNN(SingleLayerNeuralNetwork network, ArrayList<LanguageVector> toTestOn)
-        // {
-        //     LinkedHashMap<String, ArrayList<Integer>> predictions = new LinkedHashMap<>();
-        //     LinkedHashMap<String, ArrayList<Double>> evaluation = new LinkedHashMap<>();
-        //     for(int i = 0; i < network.languageNames.size(); i++)
-        //     {
-        //         //setting correct language labels for iteration
-        //         for(int j = 0; j < toTestOn.size(); j++) if(toTestOn.get(j).name.equals(network.languageNames.get(i))) toTestOn.get(j).label = 1;
-        //         for(int j = 0; j < toTestOn.size(); j++)
-        //         {
-        //             if(!predictions.containsKey(toTestOn.get(i).name))
-        //             {
-        //                 predictions.put(toTestOn.get(i).name, new ArrayList<>());
-        //             }
-        //             ArrayList<Integer> previousPredictions = predictions.get(toTestOn.get(i).name);
-        //             previousPredictions.add(toTestOn.get(j).label);
-        //             previousPredictions.add((Integer.valueOf(network.predict(toTestOn.get(j)))));
-        //         }
-        //         ArrayList<Integer> real = new ArrayList<>();
-        //         ArrayList<Integer> predicted = new ArrayList<>();
-        //         ArrayList<Integer> mixed = predictions.get(network.languageNames.get(i));  
-        //         for(int j = 0; j < mixed.size(); j += 2)
-        //         {
-        //             real.add(mixed.get(j));
-        //         }
-        //         for(int j = 1; j < mixed.size(); j += 2)
-        //         {
-        //             predicted.add(mixed.get(j));
-        //         }
-        //         ArrayList<Double> toPut = calculateMetrics(predicted, real, i); 
-        //         evaluation.put(network.languageNames.get(i), toPut);
-        //         //setting language labels back
-        //         for(int j = 0; j < toTestOn.size(); j++) toTestOn.get(j).label = 0;
-        //     }
-        //     return evaluation;
-        // }
-
         public LinkedHashMap<String, ArrayList<Double>> evaluateNN(SingleLayerNeuralNetwork network, ArrayList<LanguageVector> toTestOn) 
         {
             LinkedHashMap<String, ArrayList<Double>> evaluationPerLanguage = new LinkedHashMap<>();
@@ -495,20 +435,24 @@ public class NAI_MPP3_s32785
             double tp = 0;
             double fp = 0;
             double fn = 0;
+            double tn = 0;
 
             for(int i = 0; i < predicted.size(); i++)
             {
                 if(real.get(i) == target && predicted.get(i) == target) tp++;
                 if(real.get(i) != target && predicted.get(i) == target) fp++;
                 if(real.get(i) == target && predicted.get(i) != target) fn++;
+                if(real.get(i) != target && predicted.get(i) != target) tn++;
             }
 
+            double accuracy = (tp + tn) / (tp + tn + fp + fn);
             double precision = (tp + fp == 0) ? 0 : tp / (tp+fp);
             double recall = (tp + fn == 0) ? 0 : tp / (tp + fn);
             double fmeasure = 0;
             if(precision + recall > 0) fmeasure = 2*(precision*recall)/(precision + recall);
             
             ArrayList<Double> result = new ArrayList<>();
+            result.add(accuracy);
             result.add(precision);
             result.add(recall);
             result.add(fmeasure);
@@ -569,16 +513,16 @@ public class NAI_MPP3_s32785
         DataReader reader = new DataReader(trainingFileParths);
         HashMap<String, String> readingResult = reader.readDataFromFiles();
         
-        DataDivider divider = new DataDivider(readingResult);
-        divider.divideData();
+        DataDivider divider = new DataDivider();
+        divider.divideData(readingResult);
         ArrayList<LanguageVector> resultingLanguageDatas = divider.fillOutLanguages();
-        for(int i = 0; i < resultingLanguageDatas.size(); i++)
+        for(int i = 0; i < 3; i++)
         {
             System.out.println(resultingLanguageDatas.get(i));
         }
 
-        SingleLayerNeuralNetwork test = new SingleLayerNeuralNetwork(0.1, 0.1, resultingLanguageDatas);
-        test.trainLayer();
+        SingleLayerNeuralNetwork testNN = new SingleLayerNeuralNetwork(0.1, 0.1, resultingLanguageDatas);
+        testNN.trainLayer();
         
         System.out.println("Testing");
         ArrayList<String> testingFileParths = new ArrayList<>();
@@ -595,11 +539,10 @@ public class NAI_MPP3_s32785
         DataReader readerTest = new DataReader(testingFileParths);
         HashMap<String, String> readingResultTest = readerTest.readDataFromFiles();
         
-        DataDivider dividerTest = new DataDivider(readingResultTest);
-        dividerTest.divideData();
-        ArrayList<LanguageVector> resultingLanguageDatasTest = dividerTest.fillOutLanguages();
+        divider.divideData(readingResultTest);
+        ArrayList<LanguageVector> resultingLanguageDatasTest = divider.fillOutLanguages();
         EvaluationMetrics measurements = new EvaluationMetrics();
-        LinkedHashMap<String, ArrayList<Double>> finalResults = measurements.evaluateNN(test, resultingLanguageDatasTest);
+        LinkedHashMap<String, ArrayList<Double>> finalResults = measurements.evaluateNN(testNN, resultingLanguageDatasTest);
 
         System.out.println("\n---EVALUATION---");
         for (Map.Entry<String, ArrayList<Double>> entry : finalResults.entrySet()) 
@@ -608,10 +551,44 @@ public class NAI_MPP3_s32785
             ArrayList<Double> metrics = entry.getValue();
         
             System.out.println("Language: " + language);
-            System.out.printf("  Precision: %.4f\n", metrics.get(0));
-            System.out.printf("  Recall:    %.4f\n", metrics.get(1));
-            System.out.printf("  F-Measure: %.4f\n", metrics.get(2));
+            System.out.printf("  Accuracy: %.4f\n", metrics.get(0));
+            System.out.printf("  Precision: %.4f\n", metrics.get(1));
+            System.out.printf("  Recall:    %.4f\n", metrics.get(2));
+            System.out.printf("  F-Measure: %.4f\n", metrics.get(3));
             System.out.println("-------------------------------");
+        }
+        Scanner sc = new Scanner(System.in);
+        System.out.println("Would you like to test your own text? Y/N");
+        String answer = sc.nextLine();
+        switch (answer) 
+        {
+            case "Y":
+                System.out.println("Enter your text");
+                String text = sc.nextLine();
+                LinkedHashMap<String, String> input = reader.readDataFromString(text);
+                divider.divideData(input);
+                ArrayList<LanguageVector> resultingLanguageDatasInput = divider.fillOutLanguages();
+                int predictedLanguage = testNN.predict(resultingLanguageDatasInput.get(0));
+                switch (predictedLanguage) 
+                {
+                    case 0:
+                        System.out.println("This is English");
+                        break;
+                    case 1:
+                        System.out.println("This is French");
+                        break;
+                    case 2:
+                        System.out.println("This is German");
+                        break;        
+                    default:
+                        System.out.println("Language not recognized :/");
+                }
+                break;
+            case "N":
+                System.out.println("Terminating...");
+                break;
+            default:
+                System.out.println("Input not recognized");
         }
     }
 }
